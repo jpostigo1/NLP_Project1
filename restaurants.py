@@ -1,6 +1,8 @@
 import nltk, os, sys, re
 from bs4 import BeautifulSoup
 
+
+
 def CleanHtml(path):
     #goes through the folders in path
     for root, folders, files in os.walk(path):
@@ -16,12 +18,14 @@ def CleanHtml(path):
 
                 #print(soup.prettify())
                 #works if each line is separated by a new line
+
+                #order of paragraphs:
+                #reviewer, name, address, city, food, service, venue,
+                #rating, written review, 4 paragraphs
                 for paragraphs in soup.findAll("p"):
-                    for line in paragraphs:
-                        #removes any additional html tags
-                        toRemove = re.compile('<[^<]+?>')
-                        line = re.sub(toRemove, '', str(line))
-                        print(line)
+                    #print(paragraphs)
+                    paragraphs = re.sub(r'<[^<]+?>', '', str(paragraphs))
+                    print(paragraphs)
 
                 #adding breaks to only test one file
                 break
