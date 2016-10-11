@@ -52,7 +52,7 @@ def CleanHtml(htmlPath, reviewer=None):
     paras = []
     for paragraphs in soup.findAll("p"):
         paragraph = re.sub(r'<[^<]+?>', '', str(paragraphs))
-
+        #paragraph = paragraph.encode('ascii', 'ignore').decode('utf-8', 'ignore')
         splitParagraph = ""
         if not stop:
             splitParagraph = paragraph.split(':')
@@ -64,7 +64,7 @@ def CleanHtml(htmlPath, reviewer=None):
                     reviewDict[key] = reviewer
                 else:
                     if(key != ""):
-                        reviewDict[key] = splitParagraph[1].strip(' ')
+                        reviewDict[key] = splitParagraph[1].strip()
         if stop:
             if(len(splitParagraph) > 1):
                 paras.append(splitParagraph[1])
@@ -74,8 +74,8 @@ def CleanHtml(htmlPath, reviewer=None):
     paras = [p for p in paras if p != ""]
     for i in range (1, len(paras) - 1):
         reviewDict["para" + str(i)] = paras[i-1]
-    print(reviewDict)
-    return reviewDict
+    print(sorted(reviewDict.items()))
+    return sorted(reviewDict.items())
 def main():
     path = ""
     if(len(sys.argv) > 1):
