@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 TRAIN = 'training'
 TEST = 'test'
 
+
 def BuildDicts(path):
     train = []
     test = []
@@ -36,9 +37,11 @@ def BuildDicts(path):
         test, train = allReviews[:splitPoint], allReviews[splitPoint:]
     return (test, train)
 
+
 def GetPath(path):
     folders = os.listdir(path)
     return TEST in folders and TRAIN in folders
+
 
 def CleanHtml(htmlPath, reviewer=None):
     fd = open(htmlPath).read()
@@ -51,31 +54,43 @@ def CleanHtml(htmlPath, reviewer=None):
     count = 1
     paras = []
     for paragraphs in soup.findAll("p"):
+        print("paragraphs: |{}|".format(paragraphs))
         paragraph = re.sub(r'<[^<]+?>', '', str(paragraphs))
-        #paragraph = paragraph.encode('ascii', 'ignore').decode('utf-8', 'ignore')
-        splitParagraph = ""
-        if not stop:
-            splitParagraph = paragraph.split(':')
-            key = splitParagraph[0].lower()
-            if(key == "written review"):
-                stop = True
-            else:
-                if(key == 'reviewer' and reviewer):
-                    reviewDict[key] = reviewer
+        if paragraph != "":
+            print("paragraph: |{}|".format(paragraph))
+            #paragraph = paragraph.encode('ascii', 'ignore').decode('utf-8', 'ignore')
+            splitParagraph = ""
+            if not stop:
+                if (':' not in paragraph and paragraph != ""):
+                    match = re.match(r"^(\S*)\s([\w\s]+)$", paragraph)
+                    if match:
+                        splitParagraph = list(match.groups())
                 else:
-                    if(key != ""):
-                        reviewDict[key] = splitParagraph[1].strip()
-        if stop:
-            if(len(splitParagraph) > 1):
-                paras.append(splitParagraph[1])
-            else:
-                paras.append(paragraph)
-            count += 1
-    paras = [p for p in paras if p != ""]
-    for i in range (1, len(paras) - 1):
-        reviewDict["para" + str(i)] = paras[i-1]
-    print(sorted(reviewDict.items()))
+                    splitParagraph = paragraph.split(':')
+                print("splitParagraph: |{}|".format(splitParagraph))
+                key = splitParagraph[0].lower()
+                if(key == "written review"):
+                    stop = True
+                else:
+                    if(key == 'reviewer' and reviewer):
+                        reviewDict[key] = reviewer
+                    else:
+                        if(key != ""):
+                            reviewDict[key] = splitParagraph[1].strip()
+            if stop:
+                if(len(splitParagraph) > 1):
+                    paras.append(splitParagraph[1])
+                else:
+                    paras.append(paragraph)
+                count += 1
+        paras = [p for p in paras if p != ""]
+        for i in range (1, len(paras) - 1):
+            reviewDict["para" + str(i)] = paras[i-1]
+
+    #print(sorted(reviewDict.items()))
     return sorted(reviewDict.items())
+
+
 def main():
     path = ""
     if(len(sys.argv) > 1):
@@ -92,8 +107,8 @@ def main():
         print("Usage: restaurants.py DATA_DIR")
         sys.exit(1)
 
-    BuildDicts(path)
-
+    test,train = BuildDicts(path)
+    print("Test: {}\n\nTrain: {}".format(test, train))
 
 
     return
