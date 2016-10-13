@@ -4,6 +4,22 @@ from bs4 import BeautifulSoup
 TRAIN = 'training'
 TEST = 'test'
 
+FOOD_RATING = "food"
+SERVICE_RATING = "service"
+VENUE_RATING = "venue"
+OVERALL_RATING = ["overall", "rating"]
+
+FOOD_TEXT = "para1"
+SERVICE_TEXT = "para2"
+VENUE_TEXT = "para3"
+OVERALL_TEXT = "para4"
+
+def GetFeaturesParagraphRating(reviewSet):
+    # Returns a list of (paragraph, rating) tuples based on the following expected order of paragraphs:
+    # food, service, venue, rating
+
+    return [(review[FOOD_TEXT], review[FOOD_RATING]) for review in reviewSet]
+
 
 def BuildDicts(path):
     train = []
