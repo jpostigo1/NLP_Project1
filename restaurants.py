@@ -87,8 +87,11 @@ def CleanHtml(htmlPath, reviewer=None):
                         if(key == 'reviewer' and reviewer):
                             reviewDict[key] = reviewer
                         else:
-                            if(key != ""):
-                                reviewDict[key] = splitParagraph[1].strip()
+                            if(key != "" ):
+                                if (len(splitParagraph) > 1):
+                                    reviewDict[key] = splitParagraph[1].strip()
+                                else:
+                                    reviewDict[key] = None
                 if stop:
                     if(splitParagraph and len(splitParagraph) > 1):
                         paras.append(splitParagraph[1].strip())
