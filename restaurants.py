@@ -23,18 +23,26 @@ def BuildDicts(path):
     else:
         #files are in review folders
         allReviews = []
-        ratio = 4
         for i in range(1,4):
             newPath = path + "/Review" + str(i) + "/"
             for folders in os.listdir(newPath):
                 if(os.path.isdir(newPath + folders)):
                     for file in os.listdir(newPath + folders):
                         reviewer = folders.split('_')[0]
-                        CleanHtml(newPath + folders + '/' + file, reviewer=reviewer)
+                        allReviews.append(CleanHtml(newPath + folders + '/' + file, reviewer=reviewer))
 
-        splitPoint = len(allReviews)//ratio
         random.shuffle(allReviews)
-        test, train = allReviews[:splitPoint], allReviews[splitPoint:]
+
+        #put one review from each reviewer in the test set and the rest in train
+        reviewers_in_test = set()
+        for review in allReviews:
+            if (review != {}):
+                if (review["reviewer"] in reviewers_in_test):
+                    train.append(review)
+                else:
+                    test.append(review)
+                    reviewers_in_test.add(review["reviewer"])
+
     return (test, train)
 
 
@@ -53,42 +61,45 @@ def CleanHtml(htmlPath, reviewer=None):
     stop = False
     count = 1
     paras = []
-    for paragraphs in soup.findAll("p"):
-        print("paragraphs: |{}|".format(paragraphs))
+    seen = []
+    for paragraphs in soup.findAll(["p", "span"]):
+        #print("paragraphs: |{}|".format(paragraphs))
         paragraph = re.sub(r'<[^<]+?>', '', str(paragraphs))
-        if paragraph != "":
-            print("paragraph: |{}|".format(paragraph))
-            #paragraph = paragraph.encode('ascii', 'ignore').decode('utf-8', 'ignore')
-            splitParagraph = ""
-            if not stop:
-                if (':' not in paragraph and paragraph != ""):
-                    match = re.match(r"^(\S*)\s([\w\s]+)$", paragraph)
-                    if match:
-                        splitParagraph = list(match.groups())
-                else:
-                    splitParagraph = paragraph.split(':')
-                print("splitParagraph: |{}|".format(splitParagraph))
-                key = splitParagraph[0].lower()
-                if(key == "written review"):
-                    stop = True
-                else:
-                    if(key == 'reviewer' and reviewer):
-                        reviewDict[key] = reviewer
+        paragraph = re.sub(r'\n', ' ', str(paragraph)).strip()
+        if (paragraph not in seen):
+            seen.append(paragraph)
+            if paragraph != "\n" and paragraph != "":
+                #print("paragraph: |{}|".format(paragraph))
+                #paragraph = paragraph.encode('ascii', 'ignore').decode('utf-8', 'ignore')
+                splitParagraph = None
+                if not stop:
+                    if (':' not in paragraph and paragraph != ""):
+                        match = re.match(r"^(\S*)\s([\w\s]+)$", paragraph)
+                        if match:
+                            splitParagraph = list(match.groups())
                     else:
-                        if(key != ""):
-                            reviewDict[key] = splitParagraph[1].strip()
-            if stop:
-                if(len(splitParagraph) > 1):
-                    paras.append(splitParagraph[1])
-                else:
-                    paras.append(paragraph)
-                count += 1
-        paras = [p for p in paras if p != ""]
-        for i in range (1, len(paras) - 1):
-            reviewDict["para" + str(i)] = paras[i-1]
+                        splitParagraph = paragraph.split(':')
+                    #print("splitParagraph: |{}|".format(splitParagraph))
+                    key = splitParagraph[0].lower().strip()
+                    if(key == "written review"):
+                        stop = True
+                    else:
+                        if(key == 'reviewer' and reviewer):
+                            reviewDict[key] = reviewer
+                        else:
+                            if(key != ""):
+                                reviewDict[key] = splitParagraph[1].strip()
+                if stop:
+                    if(splitParagraph and len(splitParagraph) > 1):
+                        paras.append(splitParagraph[1].strip())
+                    else:
+                        paras.append(paragraph)
+                    count += 1
+            paras = [p for p in paras if p != ""]
+            for i in range (1, len(paras) + 1):
+                reviewDict["para" + str(i)] = paras[i-1]
 
-    #print(sorted(reviewDict.items()))
-    return sorted(reviewDict.items())
+    return reviewDict
 
 
 def main():
