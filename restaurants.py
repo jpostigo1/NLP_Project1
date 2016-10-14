@@ -7,7 +7,7 @@ TEST = 'test'
 FOOD_RATING = "food"
 SERVICE_RATING = "service"
 VENUE_RATING = "venue"
-OVERALL_RATING = ["overall", "rating"]
+OVERALL_RATING = "rating"
 
 FOOD_TEXT = "para1"
 SERVICE_TEXT = "para2"
@@ -17,8 +17,26 @@ OVERALL_TEXT = "para4"
 def GetFeaturesParagraphRating(reviewSet):
     # Returns a list of (paragraph, rating) tuples based on the following expected order of paragraphs:
     # food, service, venue, rating
+    paragraphRatings = []
+    for review in reviewSet:
+        paragraphRatings.append((review[FOOD_TEXT], review[FOOD_RATING]))
+        paragraphRatings.append((review[SERVICE_TEXT], review[SERVICE_TEXT]))
+        paragraphRatings.append((review[VENUE_TEXT], review[VENUE_TEXT]))
+        paragraphRatings.append((review[OVERALL_TEXT], review[OVERALL_RATING]))
+    return paragraphRatings
 
-    return [(review[FOOD_TEXT], review[FOOD_RATING]) for review in reviewSet]
+
+def GetFeaturesParagraphTopic(reviewSet):
+    # Returns a list of (paragraph, topic) tuples based on the following expected order of paragraphs:
+    # food, service, venue, rating
+    paragraphTopics = []
+    for review in reviewSet:
+        paragraphTopics.append((review[FOOD_TEXT], FOOD_RATING))
+        paragraphTopics.append((review[SERVICE_TEXT], SERVICE_RATING))
+        paragraphTopics.append((review[VENUE_TEXT], VENUE_RATING))
+        paragraphTopics.append((review[OVERALL_TEXT], OVERALL_RATING))
+    return paragraphTopics
+
 
 
 def BuildDicts(path):
@@ -100,6 +118,8 @@ def CleanHtml(htmlPath, reviewer=None):
                     if(key == "written review"):
                         stop = True
                     else:
+                        if (key == "overall" or key == OVERALL_RATING):
+                            key = OVERALL_RATING
                         if(key == 'reviewer' and reviewer):
                             reviewDict[key] = reviewer
                         else:
