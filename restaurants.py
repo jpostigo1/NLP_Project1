@@ -14,15 +14,18 @@ SERVICE_TEXT = "para2"
 VENUE_TEXT = "para3"
 OVERALL_TEXT = "para4"
 
+PARAGRAPH = "paragraph"
+
 def GetFeaturesParagraphRating(reviewSet):
     # Returns a list of (paragraph, rating) tuples based on the following expected order of paragraphs:
     # food, service, venue, rating
+    # where paragraph is the dictionary of features
     paragraphRatings = []
     for review in reviewSet:
-        paragraphRatings.append((review[FOOD_TEXT], review[FOOD_RATING]))
-        paragraphRatings.append((review[SERVICE_TEXT], review[SERVICE_TEXT]))
-        paragraphRatings.append((review[VENUE_TEXT], review[VENUE_TEXT]))
-        paragraphRatings.append((review[OVERALL_TEXT], review[OVERALL_RATING]))
+        paragraphRatings.append(({PARAGRAPH: review[FOOD_TEXT]}, review[FOOD_RATING]))
+        paragraphRatings.append(({PARAGRAPH: review[SERVICE_TEXT]}, review[SERVICE_RATING]))
+        paragraphRatings.append(({PARAGRAPH: review[VENUE_TEXT]}, review[VENUE_RATING]))
+        paragraphRatings.append(({PARAGRAPH: review[OVERALL_TEXT]}, review[OVERALL_RATING]))
     return paragraphRatings
 
 
@@ -31,18 +34,6 @@ def GetBinaryRating(rating):
         return 0
     else:
         return 1
-    
-
-def GetFeaturesParagraphTopic(reviewSet):
-    # Returns a list of (paragraph, topic) tuples based on the following expected order of paragraphs:
-    # food, service, venue, rating
-    paragraphTopics = []
-    for review in reviewSet:
-        paragraphTopics.append((GetBinaryRating(review[FOOD_TEXT]), FOOD_RATING))
-        paragraphTopics.append((GetBinaryRating(review[SERVICE_TEXT]), SERVICE_RATING))
-        paragraphTopics.append((GetBinaryRating(review[VENUE_TEXT]), VENUE_RATING))
-        paragraphTopics.append((GetBinaryRating(review[OVERALL_TEXT]), OVERALL_RATING))
-    return paragraphTopics
 
 
 def GetOverallRating(reviewSet):
