@@ -26,15 +26,22 @@ def GetFeaturesParagraphRating(reviewSet):
     return paragraphRatings
 
 
+def GetBinaryRating(rating):
+    if rating <= 3:
+        return 0
+    else:
+        return 1
+    
+
 def GetFeaturesParagraphTopic(reviewSet):
     # Returns a list of (paragraph, topic) tuples based on the following expected order of paragraphs:
     # food, service, venue, rating
     paragraphTopics = []
     for review in reviewSet:
-        paragraphTopics.append((review[FOOD_TEXT], FOOD_RATING))
-        paragraphTopics.append((review[SERVICE_TEXT], SERVICE_RATING))
-        paragraphTopics.append((review[VENUE_TEXT], VENUE_RATING))
-        paragraphTopics.append((review[OVERALL_TEXT], OVERALL_RATING))
+        paragraphTopics.append((GetBinaryRating(review[FOOD_TEXT]), FOOD_RATING))
+        paragraphTopics.append((GetBinaryRating(review[SERVICE_TEXT]), SERVICE_RATING))
+        paragraphTopics.append((GetBinaryRating(review[VENUE_TEXT]), VENUE_RATING))
+        paragraphTopics.append((GetBinaryRating(review[OVERALL_TEXT]), OVERALL_RATING))
     return paragraphTopics
 
 
