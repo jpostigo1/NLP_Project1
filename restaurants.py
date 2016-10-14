@@ -38,6 +38,30 @@ def GetFeaturesParagraphTopic(reviewSet):
     return paragraphTopics
 
 
+def GetOverallRating(reviewSet):
+    #returns a predicted rating for 'overall' or 'rating'
+    #tuples like (food_rating, score), etc.
+    scores = []
+    for review in reviewSet:
+        food_score = review[FOOD_RATING]
+        service_score = review[SERVICE_RATING]
+        venue_score = review[VENUE_RATING]
+
+        foodTuple = (FOOD_RATING, food_score)
+        serviceTuple = (SERVICE_RATING, service_score)
+        venueTuple = (VENUE_RATING, venue_score)
+
+        overall_score = review[OVERALL_RATING]
+
+        scores.append(((foodTuple, serviceTuple, venueTuple), overall_score))
+
+
+    return scores
+
+def GetAuthor(reviewSet):
+    #tuples of (paras[0:4], reviewer)
+    return
+
 
 def BuildDicts(path):
     train = []
@@ -86,7 +110,8 @@ def GetPath(path):
 
 
 def CleanHtml(htmlPath, reviewer=None):
-    fd = open(htmlPath).read()
+    print(htmlPath)
+    fd = open(htmlPath, encoding='utf-8').read()
     soup = BeautifulSoup(fd, 'html.parser')
     reviewDict = {}
     #order of paragraphs:
