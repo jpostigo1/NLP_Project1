@@ -39,32 +39,41 @@ def GetBinaryRating(rating):
 def GetOverallRating(reviewSet):
     #returns a predicted rating for 'overall' or 'rating'
     #tuples like (food_rating, score), etc.
-    scores = []
+    #scores = []
+
+    features = {}
     for review in reviewSet:
         food_score = review[FOOD_RATING]
         service_score = review[SERVICE_RATING]
         venue_score = review[VENUE_RATING]
 
-        foodTuple = (FOOD_RATING, food_score)
-        serviceTuple = (SERVICE_RATING, service_score)
-        venueTuple = (VENUE_RATING, venue_score)
-
-        overall_score = review[OVERALL_RATING]
-
-        scores.append(((foodTuple, serviceTuple, venueTuple), overall_score))
+        features = {"food_score":food_score, "service_score":service_score,
+                    "venue_score":venue_score}
+        #other features: paragraph_rating:rating
 
 
-    return scores
+        #foodTuple = (FOOD_RATING, food_score)
+        #serviceTuple = (SERVICE_RATING, service_score)
+        #venueTuple = (VENUE_RATING, venue_score)
+
+        #overall_score = review[OVERALL_RATING]
+
+        #scores.append(((foodTuple, serviceTuple, venueTuple), overall_score))
+
+
+    return features
 
 def GetAuthor(reviewSet):
     #tuples of (paras[0:4], reviewer)
     #order: food,service,venue,overall
-    paras_author = []
+    #paras_author = []
+    features = {}
     for review in reviewSet:
         allParas = review[FOOD_TEXT] + "\n" + review[SERVICE_TEXT] + "\n" + review[VENUE_TEXT] + "\n" + review[OVERALL_TEXT]
+        features = {"reviewer":review["reviewer"], "paragraphs":allParas}
 
-        paras_author.append((allParas, review["reviewer"]))
-    return paras_author
+        #paras_author.append((allParas, review["reviewer"]))
+    return features
 
 
 def BuildDicts(path):
