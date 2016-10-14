@@ -60,7 +60,13 @@ def GetOverallRating(reviewSet):
 
 def GetAuthor(reviewSet):
     #tuples of (paras[0:4], reviewer)
-    return
+    #order: food,service,venue,overall
+    paras_author = []
+    for review in reviewSet:
+        allParas = review[FOOD_TEXT] + "\n" + review[SERVICE_TEXT] + "\n" + review[VENUE_TEXT] + "\n" + review[OVERALL_TEXT]
+
+        paras_author.append((allParas, review["reviewer"]))
+    return paras_author
 
 
 def BuildDicts(path):
