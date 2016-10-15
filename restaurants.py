@@ -22,26 +22,21 @@ def GetFeaturesParagraphRating(reviewSet):
     # where paragraph is the dictionary of features
     paragraphRatings = []
     for review in reviewSet:
-        paragraphRatings.append(({PARAGRAPH: review[FOOD_TEXT]}, review[FOOD_RATING]))
-        paragraphRatings.append(({PARAGRAPH: review[SERVICE_TEXT]}, review[SERVICE_RATING]))
-        paragraphRatings.append(({PARAGRAPH: review[VENUE_TEXT]}, review[VENUE_RATING]))
-        paragraphRatings.append(({PARAGRAPH: review[OVERALL_TEXT]}, review[OVERALL_RATING]))
+        if ("para1" in review.keys() and "para2" in review.keys() and
+            "para3" in review.keys() and "para4" in review.keys()):
+            paragraphRatings.append(({PARAGRAPH: review[FOOD_TEXT]}, GetBinaryRating(review[FOOD_RATING])))
+            paragraphRatings.append(({PARAGRAPH: review[SERVICE_TEXT]}, GetBinaryRating(review[SERVICE_RATING])))
+            paragraphRatings.append(({PARAGRAPH: review[VENUE_TEXT]}, GetBinaryRating(review[VENUE_RATING])))
+            paragraphRatings.append(({PARAGRAPH: review[OVERALL_TEXT]}, GetBinaryRating(review[OVERALL_RATING])))
     return paragraphRatings
 
 
 def GetBinaryRating(rating):
-    if rating <= 3:
-        return 0
-    else:
-        return 1
+    return 0 if float(rating) <= 3 else 1
 
 
 def GetOverallRating(reviewSet):
-    #returns a predicted rating for 'overall' or 'rating'
-    #tuples like (food_rating, score), etc.
-    #scores = []
-
-    features = {}
+    scores = []
     for review in reviewSet:
         food_score = review[FOOD_RATING]
         service_score = review[SERVICE_RATING]
@@ -50,30 +45,22 @@ def GetOverallRating(reviewSet):
         features = {"food_score":food_score, "service_score":service_score,
                     "venue_score":venue_score}
         #other features: paragraph_rating:rating
+        scores.append(features)
 
-
-        #foodTuple = (FOOD_RATING, food_score)
-        #serviceTuple = (SERVICE_RATING, service_score)
-        #venueTuple = (VENUE_RATING, venue_score)
-
-        #overall_score = review[OVERALL_RATING]
-
-        #scores.append(((foodTuple, serviceTuple, venueTuple), overall_score))
-
-
-    return features
+    return scores
 
 def GetAuthor(reviewSet):
-    #tuples of (paras[0:4], reviewer)
-    #order: food,service,venue,overall
-    #paras_author = []
-    features = {}
+    paras_author = []
     for review in reviewSet:
-        allParas = review[FOOD_TEXT] + "\n" + review[SERVICE_TEXT] + "\n" + review[VENUE_TEXT] + "\n" + review[OVERALL_TEXT]
+        allParas = ""
+        for key in review.keys():
+            #get all paragraphs regardless of how many
+            if "para" in key:
+                allParas += review[key]
         features = {"reviewer":review["reviewer"], "paragraphs":allParas}
+        paras_author.append(features)
 
-        #paras_author.append((allParas, review["reviewer"]))
-    return features
+    return paras_author
 
 
 def BuildDicts(path):
@@ -123,7 +110,7 @@ def GetPath(path):
 
 
 def CleanHtml(htmlPath, reviewer=None):
-    print(htmlPath)
+    #print(htmlPath)
     fd = open(htmlPath, encoding='utf-8').read()
     soup = BeautifulSoup(fd, 'html.parser')
     reviewDict = {}
@@ -196,8 +183,8 @@ def main():
         sys.exit(1)
 
     test,train = BuildDicts(path)
-    print("Test: {}\n\nTrain: {}".format(test, train))
-
+    #print("Test: {}\n\nTrain: {}".format(test, train))
+    GetFeaturesParagraphRating(train)
 
     return
 
