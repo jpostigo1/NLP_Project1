@@ -1,5 +1,7 @@
 import nltk, os, sys, re, random, string
 from bs4 import BeautifulSoup
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+
 
 TRAIN = 'training'
 TEST = 'test'
@@ -29,6 +31,14 @@ def GetFeaturesParagraphRating(reviewSet):
             paragraphRatings.append(({PARAGRAPH: review[VENUE_TEXT]}, GetBinaryRating(review[VENUE_RATING])))
             paragraphRatings.append(({PARAGRAPH: review[OVERALL_TEXT]}, GetBinaryRating(review[OVERALL_RATING])))
     return paragraphRatings
+
+
+def GetSentimentFromText(text):
+    # Using the vader sentiment analyzer, returns the numerical overall (compound) analysis of the text.
+    # Negative means negative sentiment; positive means positive sentiment.
+    sid = SentimentIntensityAnalyzer()
+    ss = sid.polarity_scores(text)
+    return ss["compound"]
 
 
 def GetBinaryRating(rating):
