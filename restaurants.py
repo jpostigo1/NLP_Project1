@@ -1,7 +1,7 @@
 import nltk, os, sys, re, random, string
 from bs4 import BeautifulSoup
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-
+import numpy
 
 TRAIN = 'training'
 TEST = 'test'
@@ -17,6 +17,7 @@ VENUE_TEXT = "para3"
 OVERALL_TEXT = "para4"
 
 PARAGRAPH = "paragraph"
+
 
 def GetFeaturesParagraphRating(reviewSet):
     # Returns a list of (paragraph, rating) tuples based on the following expected order of paragraphs:
@@ -59,6 +60,7 @@ def GetOverallRating(reviewSet):
 
     return scores
 
+
 def GetAuthor(reviewSet):
     paras_author = []
     for review in reviewSet:
@@ -73,13 +75,16 @@ def GetAuthor(reviewSet):
     return paras_author
 
 
+def TestAndTrainExist(path):
+    folders = os.listdir(path)
+    return TEST in folders and TRAIN in folders
+
+
 def BuildDicts(path):
     train = []
     test = []
 
-    testAndTrain = GetPath(path)
-
-    if testAndTrain:
+    if TestAndTrainExist(path):
         #parse the html files
         for file in os.listdir(path + '/' + TEST):
             filePath = path + '/' + TEST + '/' + file
@@ -114,13 +119,7 @@ def BuildDicts(path):
     return (test, train)
 
 
-def GetPath(path):
-    folders = os.listdir(path)
-    return TEST in folders and TRAIN in folders
-
-
 def CleanHtml(htmlPath, reviewer=None):
-    #print(htmlPath)
     fd = open(htmlPath, encoding='utf-8').read()
     soup = BeautifulSoup(fd, 'html.parser')
     reviewDict = {}
@@ -176,6 +175,36 @@ def CleanHtml(htmlPath, reviewer=None):
     return reviewDict
 
 
+def PredictBinaryRatings(train, test):
+    paraRatingFeaturesTrain = GetFeaturesParagraphRating(train)
+    paraRatingFeaturesTest = GetFeaturesParagraphRating(test)
+
+    NBClassifier = nltk.NaiveBayesClassifier.train(paraRatingFeaturesTrain)
+    MEClassifier = nltk.MaxentClassifier.train(paraRatingFeaturesTrain, max_iter=5)
+    DTClassifier = nltk.DecisionTreeClassifier.train(paraRatingFeaturesTrain, entropy_cutoff=0.1)
+
+    # for feature, label in paraRatingFeaturesTest:
+    #    print("Features: {}\nClassified as: {}\nCorrect label: {}\n\n".format(feature, NBClassifier.classify(feature), label))
+
+    print("Accuracy for NB: ", nltk.classify.accuracy(NBClassifier, paraRatingFeaturesTest))
+    # print(NBClassifier.show_most_informative_features(20))
+
+    print("Accuracy for ME: ", nltk.classify.accuracy(MEClassifier, paraRatingFeaturesTest))
+    # print(MEClassifier.show_most_informative_features(20))
+
+    print("Accuracy for DT: ", nltk.classify.accuracy(DTClassifier, paraRatingFeaturesTest))
+
+    num_correct = 0
+    num_total = 0
+    for feature, label in paraRatingFeaturesTest:
+        predict = 0 if GetSentimentFromText(feature["paragraph"]) <= 0 else 1
+        if predict == label:
+            num_correct += 1
+        num_total += 1
+
+    print("Accuracy for Vader: ", float(num_correct) / num_total)
+
+
 def main():
     path = ""
     if(len(sys.argv) > 1):
@@ -194,9 +223,13 @@ def main():
 
     test,train = BuildDicts(path)
     #print("Test: {}\n\nTrain: {}".format(test, train))
-    GetFeaturesParagraphRating(train)
+    
+    PredictBinaryRatings(train, test)
 
-    return
+    return 0
+
+
+
 
 if __name__ == "__main__":
     main()
