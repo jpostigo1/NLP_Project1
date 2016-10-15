@@ -1,4 +1,4 @@
-import nltk, os, sys, re, random, string
+import nltk, os, sys, re, random, string, math
 from bs4 import BeautifulSoup
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import numpy
@@ -34,12 +34,9 @@ def GetFeaturesParagraphRating(reviewSet):
     return paragraphRatings
 
 
-def GetSentimentFromText(text):
-    # Using the vader sentiment analyzer, returns the numerical overall (compound) analysis of the text.
-    # Negative means negative sentiment; positive means positive sentiment.
-    sid = SentimentIntensityAnalyzer()
-    ss = sid.polarity_scores(text)
-    return ss["compound"]
+def GetVaderRatings(text):
+    # Using the vader sentiment analyzer, returns the dictionary of vader sentiments of the text.
+    return SentimentIntensityAnalyzer().polarity_scores(text)
 
 
 def GetBinaryRating(rating):
@@ -179,30 +176,32 @@ def PredictBinaryRatings(train, test):
     paraRatingFeaturesTrain = GetFeaturesParagraphRating(train)
     paraRatingFeaturesTest = GetFeaturesParagraphRating(test)
 
-    NBClassifier = nltk.NaiveBayesClassifier.train(paraRatingFeaturesTrain)
-    MEClassifier = nltk.MaxentClassifier.train(paraRatingFeaturesTrain, max_iter=5)
-    DTClassifier = nltk.DecisionTreeClassifier.train(paraRatingFeaturesTrain, entropy_cutoff=0.1)
+    #NBClassifier = nltk.NaiveBayesClassifier.train(paraRatingFeaturesTrain)
+    #MEClassifier = nltk.MaxentClassifier.train(paraRatingFeaturesTrain, max_iter=5)
+    #DTClassifier = nltk.DecisionTreeClassifier.train(paraRatingFeaturesTrain, entropy_cutoff=0.1)
 
     # for feature, label in paraRatingFeaturesTest:
     #    print("Features: {}\nClassified as: {}\nCorrect label: {}\n\n".format(feature, NBClassifier.classify(feature), label))
 
-    print("Accuracy for NB: ", nltk.classify.accuracy(NBClassifier, paraRatingFeaturesTest))
-    # print(NBClassifier.show_most_informative_features(20))
-
-    print("Accuracy for ME: ", nltk.classify.accuracy(MEClassifier, paraRatingFeaturesTest))
-    # print(MEClassifier.show_most_informative_features(20))
-
-    print("Accuracy for DT: ", nltk.classify.accuracy(DTClassifier, paraRatingFeaturesTest))
-
     num_correct = 0
     num_total = 0
+    predict_actuals = [] # list of (predicted_label, acutal_label) tuples for RMS calculation
     for feature, label in paraRatingFeaturesTest:
-        predict = 0 if GetSentimentFromText(feature["paragraph"]) <= 0 else 1
+        vader_ratings = GetVaderRatings(feature["paragraph"])
+        predict = 0 if vader_ratings["neg"] > vader_ratings["pos"] else 1
         if predict == label:
             num_correct += 1
         num_total += 1
+        predict_actuals.append((predict, label))
 
-    print("Accuracy for Vader: ", float(num_correct) / num_total)
+    print("Accuracy for Vader: {}".format(float(num_correct) / num_total))
+    print("Average RMS error for Vader: {}".format(AveRMS(predict_actuals)))
+
+
+def AveRMS(prediction_actuals):
+    # Returns the average root-mean-square of the given values
+    # predition_actuals is a list of (prediction, actual) tuples
+    return math.sqrt(sum([pow(p - a, 2) for p, a in prediction_actuals]) / len(prediction_actuals))
 
 
 def main():
