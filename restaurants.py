@@ -243,22 +243,24 @@ def main():
     #print("Test: {}\n\nTrain: {}".format(test, train))
 
 
-    # Example 1 -- Predict the binary rating of each paragraph regardless of subject, assume correct order for ratings.
+    # Exercise 1 -- Predict the binary rating of each paragraph regardless of subject, assume correct order for ratings.
     print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
           .format(1 - AverageFiveTrials(lambda: PredictBinaryRatings(train, test))))
 
-    # Example 2 -- Use NLTK functions and corpora to discover three interesting phenomena about the restaurant corpus.
+    # Exercise 2 -- Use NLTK functions and corpora to discover three interesting phenomena about the restaurant corpus.
     # Use machine learning to prove this. Discuss your results.
     #
     #  - Could possibly use sentimentAnalysis.py to find interesting stats on subjectivity/objectivity of reviews
+    #  - Could remove stopwords, count freqdist on rest of words, split into good/bad or subj/obj reviews and remove
+    #    the non-distinct words, use as features in a classifier
     #  - ...?
 
-    # Example 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
+    # Exercise 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
     # for the final rating number.
     print("Average RMS error of 5 trials for predicting overall rating of each review: {}"
           .format(1 - AverageFiveTrials(lambda: PredictOverallRatings(train, test))))
 
-    # Example 4 -- Predict the author of each review.
+    # Exercise 4 -- Predict the author of each review.
     print("Average RMS error of 5 trials for predicting the author of each review: {}"
           .format(1 - AverageFiveTrials(lambda: PredictAuthor(train, test))))
 

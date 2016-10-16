@@ -1,0 +1,25 @@
+NLP Project 1 Report
+Justin Postigo and Logan Williams
+
+
+Exercise 1
+For predicting the binary ratings of each paragraph, we used NLTK's vader
+sentiment intensity analyzer. This gives us a percentage for how negative and
+positive the given text is, which we use to predict the binary rating of each
+paragraph. If the sentiment ratings are more negative, we predict 0 for the
+paragraph; if the sentiment ratings are more positive, we predict a rating of
+1. This method has been giving us an average of 65% RMS accuracy for predicting
+the binary ratings of each paragraph. We believe that the accuracy is this low
+because of the many paragraphs in the corpus that are not in the same order as
+their corresponding numerical ratings.
+
+
+Exercise 2
+
+
+
+Exercise 3
+
+
+
+Exercise 4
