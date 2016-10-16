@@ -49,27 +49,40 @@ def GetOverallRating(reviewSet):
         food_score = review[FOOD_RATING]
         service_score = review[SERVICE_RATING]
         venue_score = review[VENUE_RATING]
+        overall_score = review[OVERALL_RATING]
 
-        features = {"food_score":food_score, "service_score":service_score,
-                    "venue_score":venue_score}
-        #other features: paragraph_rating:rating
+        features = ({"food_score":food_score, "service_score":service_score,
+                    "venue_score":venue_score}, overall_score)
+
         scores.append(features)
 
     return scores
 
+def GetSpeechTags(allParas):
+    text = nltk.word_tokenize(allParas)
+    pos = nltk.pos_tag(text)
+    speeches = []
+    for word, speech in pos:
+        speeches.append(speech)
+    fd = nltk.FreqDist(speeches)
+
+    return fd
 
 def GetAuthor(reviewSet):
-    paras_author = []
+    pos_author = []
     for review in reviewSet:
         allParas = ""
         for key in review.keys():
             #get all paragraphs regardless of how many
             if "para" in key:
-                allParas += review[key]
-        features = {"reviewer":review["reviewer"], "paragraphs":allParas}
-        paras_author.append(features)
+                allParas += " " + review[key]
 
-    return paras_author
+        speechTags = GetSpeechTags(allParas)
+        #returns POS used
+        features = ({"pos":speechTags}, review["reviewer"])
+        pos_author.append(features)
+
+    return pos_author
 
 
 def TestAndTrainExist(path):
@@ -201,11 +214,53 @@ def PredictBinaryRatings(train, test):
 
 def PredictOverallRatings(train, test):
     # Given the train set and test set, return the AveRMS score for predicting overall ratings of reviews
+    getOverallRatingTrain = GetOverallRating(train)
+    getOverallRatingTest = GetOverallRating(test)
+
     return 0
 
 
+
+
+def CompareAuthorTest(authorDict, posCounts):
+    print("poscounts: ", posCounts)
+    for label, counts in authorDict.items():
+        print("counts: ", counts)
+
+        
+
+    return
+
 def PredictAuthor(train, test):
     # Given the train set and test set, return the AveRMS score for predicting the author of reviews
+    getAuthorFeaturesTrain = GetAuthor(train)
+    getAuthorFeaturesTest = GetAuthor(test)
+
+    #print(getAuthorFeaturesTrain)
+    authorDict = {}
+    seen = []
+    for feature, label in getAuthorFeaturesTrain:
+        #top 20 most common pos tags
+        mostCommon = feature["pos"].most_common(20)
+        if(label in seen):
+            after = []
+            for items, count in authorDict[label]:
+                for mcItems, mcCount in mostCommon:
+                    if(items == mcItems):
+                        newCount = math.floor((count + mcCount) / 2)
+                        newTuple = (mcItems, newCount)
+                        after.append(newTuple)
+            authorDict[label] = after
+        else:
+            seen.append(label)
+            authorDict[label] = mostCommon
+
+    #print(authorDict)
+    for feature, label in getAuthorFeaturesTest:
+        print(CompareAuthorTest(authorDict,feature["pos"].most_common(20)))
+        break
+        #print(feature["pos"].most_common(20))
+
     return 0
 
 
@@ -244,8 +299,8 @@ def main():
 
 
     # Exercise 1 -- Predict the binary rating of each paragraph regardless of subject, assume correct order for ratings.
-    print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
-          .format(1 - AverageFiveTrials(lambda: PredictBinaryRatings(train, test))))
+    #print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
+    #      .format(1 - AverageFiveTrials(lambda: PredictBinaryRatings(train, test))))
 
     # Exercise 2 -- Use NLTK functions and corpora to discover three interesting phenomena about the restaurant corpus.
     # Use machine learning to prove this. Discuss your results.
@@ -257,12 +312,13 @@ def main():
 
     # Exercise 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
     # for the final rating number.
-    print("Average RMS error of 5 trials for predicting overall rating of each review: {}"
-          .format(1 - AverageFiveTrials(lambda: PredictOverallRatings(train, test))))
+    #print("Average RMS error of 5 trials for predicting overall rating of each review: {}"
+    #      .format(1 - AverageFiveTrials(lambda: PredictOverallRatings(train, test))))
 
     # Exercise 4 -- Predict the author of each review.
-    print("Average RMS error of 5 trials for predicting the author of each review: {}"
-          .format(1 - AverageFiveTrials(lambda: PredictAuthor(train, test))))
+    PredictAuthor(train, test)
+    #print("Average RMS error of 5 trials for predicting the author of each review: {}"
+    #      .format(1 - AverageFiveTrials(lambda: PredictAuthor(train, test))))
 
 
 if __name__ == "__main__":
