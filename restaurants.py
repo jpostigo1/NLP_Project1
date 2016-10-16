@@ -194,14 +194,33 @@ def PredictBinaryRatings(train, test):
         num_total += 1
         predict_actuals.append((predict, label))
 
-    print("Accuracy for Vader: {}".format(float(num_correct) / num_total))
-    print("Average RMS error for Vader: {}".format(AveRMS(predict_actuals)))
+    #print("Accuracy for Vader: {}".format(float(num_correct) / num_total))
+    #print("Average RMS error for Vader: {}".format(AveRMS(predict_actuals)))
+    return AveRMS(predict_actuals)
+
+
+def PredictOverallRatings(train, test):
+    # Given the train set and test set, return the AveRMS score for predicting overall ratings of reviews
+    return 0
+
+
+def PredictAuthor(train, test):
+    # Given the train set and test set, return the AveRMS score for predicting the author of reviews
+    return 0
 
 
 def AveRMS(prediction_actuals):
     # Returns the average root-mean-square of the given values
     # predition_actuals is a list of (prediction, actual) tuples
     return math.sqrt(sum([pow(p - a, 2) for p, a in prediction_actuals]) / len(prediction_actuals))
+
+
+def AverageFiveTrials(func):
+    num_trials = 5
+    results = []
+    for i in range(5):
+        results.append(func())
+    return sum(results) / num_trials
 
 
 def main():
@@ -222,12 +241,26 @@ def main():
 
     test,train = BuildDicts(path)
     #print("Test: {}\n\nTrain: {}".format(test, train))
-    
-    PredictBinaryRatings(train, test)
-
-    return 0
 
 
+    # Example 1 -- Predict the binary rating of each paragraph regardless of subject, assume correct order for ratings.
+    print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
+          .format(1 - AverageFiveTrials(lambda: PredictBinaryRatings(train, test))))
+
+    # Example 2 -- Use NLTK functions and corpora to discover three interesting phenomena about the restaurant corpus.
+    # Use machine learning to prove this. Discuss your results.
+    #
+    #  - Could possibly use sentimentAnalysis.py to find interesting stats on subjectivity/objectivity of reviews
+    #  - ...?
+
+    # Example 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
+    # for the final rating number.
+    print("Average RMS error of 5 trials for predicting overall rating of each review: {}"
+          .format(1 - AverageFiveTrials(lambda: PredictOverallRatings(train, test))))
+
+    # Example 4 -- Predict the author of each review.
+    print("Average RMS error of 5 trials for predicting the author of each review: {}"
+          .format(1 - AverageFiveTrials(lambda: PredictAuthor(train, test))))
 
 
 if __name__ == "__main__":
