@@ -206,7 +206,6 @@ def PredictBinaryRatings(train, test):
             num_correct += 1
         num_total += 1
         predict_actuals.append((predict, label))
-
     #print("Accuracy for Vader: {}".format(float(num_correct) / num_total))
     #print("Average RMS error for Vader: {}".format(AveRMS(predict_actuals)))
     return AveRMS(predict_actuals)
@@ -223,20 +222,30 @@ def PredictOverallRatings(train, test):
 
 
 def CompareAuthorTest(authorDict, posCounts):
-    print("poscounts: ", posCounts)
+    #print("poscounts: ", posCounts)
+    toReturn = ()
+    min = sys.maxsize
     for label, counts in authorDict.items():
-        print("counts: ", counts)
+        if counts != []:
+            diffCounter = 0
+            #print("counts: ", counts)
+            for pos, count in posCounts:
+                for testPos, testCount in counts:
+                    if(testPos == pos):
+                        #print(pos, count, testCount)
+                        diffCounter += abs(count - testCount)
 
-        
+            if diffCounter < min:
+                min = diffCounter
+                toReturn = label
 
-    return
+    return toReturn
 
 def PredictAuthor(train, test):
     # Given the train set and test set, return the AveRMS score for predicting the author of reviews
     getAuthorFeaturesTrain = GetAuthor(train)
     getAuthorFeaturesTest = GetAuthor(test)
 
-    #print(getAuthorFeaturesTrain)
     authorDict = {}
     seen = []
     for feature, label in getAuthorFeaturesTrain:
@@ -255,13 +264,22 @@ def PredictAuthor(train, test):
             seen.append(label)
             authorDict[label] = mostCommon
 
-    #print(authorDict)
+    count = 0
+    correct = 0
+    predict_actuals = []
     for feature, label in getAuthorFeaturesTest:
-        print(CompareAuthorTest(authorDict,feature["pos"].most_common(20)))
-        break
-        #print(feature["pos"].most_common(20))
 
-    return 0
+        predictedAuthor = CompareAuthorTest(
+            authorDict,feature["pos"].most_common(20))
+        if(predictedAuthor == label):
+            predict_actuals.append((1,1))
+            correct += 1
+        else:
+            predict_actuals.append((0,1))
+        count += 1
+    #result = correct / count
+    #print(predict_actuals)
+    return AveRMS(predict_actuals)
 
 
 def AveRMS(prediction_actuals):
@@ -299,8 +317,8 @@ def main():
 
 
     # Exercise 1 -- Predict the binary rating of each paragraph regardless of subject, assume correct order for ratings.
-    #print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
-    #      .format(1 - AverageFiveTrials(lambda: PredictBinaryRatings(train, test))))
+    print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
+          .format(1 - AverageFiveTrials(lambda: PredictBinaryRatings(train, test))))
 
     # Exercise 2 -- Use NLTK functions and corpora to discover three interesting phenomena about the restaurant corpus.
     # Use machine learning to prove this. Discuss your results.
@@ -316,9 +334,9 @@ def main():
     #      .format(1 - AverageFiveTrials(lambda: PredictOverallRatings(train, test))))
 
     # Exercise 4 -- Predict the author of each review.
-    PredictAuthor(train, test)
-    #print("Average RMS error of 5 trials for predicting the author of each review: {}"
-    #      .format(1 - AverageFiveTrials(lambda: PredictAuthor(train, test))))
+    #PredictAuthor(train, test)
+    print("Average RMS error of 5 trials for predicting the author of each review: {}"
+          .format(1 - AverageFiveTrials(lambda: PredictAuthor(train, test))))
 
 
 if __name__ == "__main__":
