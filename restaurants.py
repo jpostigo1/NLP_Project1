@@ -136,22 +136,17 @@ def CleanHtml(htmlPath, reviewer=None):
     fd = open(htmlPath, encoding='utf-8').read()
     soup = BeautifulSoup(fd, 'html.parser')
     reviewDict = {}
-    #order of paragraphs:
-    #reviewer, name, address, city, food, service, venue,
-    #rating, written review, 4 paragraphs
+
     stop = False
     count = 1
     paras = []
     seen = []
     for paragraphs in soup.findAll(["p", "span"]):
-        #print("paragraphs: |{}|".format(paragraphs))
         paragraph = re.sub(r'<[^<]+?>', '', str(paragraphs))
         paragraph = re.sub(r'\n', ' ', str(paragraph)).strip()
         if (paragraph not in seen):
             seen.append(paragraph)
             if paragraph != "\n" and paragraph != "":
-                #print("paragraph: |{}|".format(paragraph))
-                #paragraph = paragraph.encode('ascii', 'ignore').decode('utf-8', 'ignore')
                 splitParagraph = None
                 if not stop:
                     if (':' not in paragraph and paragraph != ""):
@@ -160,7 +155,6 @@ def CleanHtml(htmlPath, reviewer=None):
                             splitParagraph = list(match.groups())
                     else:
                         splitParagraph = paragraph.split(':')
-                    #print("splitParagraph: |{}|".format(splitParagraph))
                     key = splitParagraph[0].lower().strip()
                     if(key == "written review"):
                         stop = True
@@ -192,13 +186,6 @@ def PredictBinaryRatings(train, test):
     paraRatingFeaturesTrain = GetFeaturesParagraphRating(train)
     paraRatingFeaturesTest = GetFeaturesParagraphRating(test)
 
-    #NBClassifier = nltk.NaiveBayesClassifier.train(paraRatingFeaturesTrain)
-    #MEClassifier = nltk.MaxentClassifier.train(paraRatingFeaturesTrain, max_iter=5)
-    #DTClassifier = nltk.DecisionTreeClassifier.train(paraRatingFeaturesTrain, entropy_cutoff=0.1)
-
-    # for feature, label in paraRatingFeaturesTest:
-    #    print("Features: {}\nClassified as: {}\nCorrect label: {}\n\n".format(feature, NBClassifier.classify(feature), label))
-
     num_correct = 0
     num_total = 0
     predict_actuals = [] # list of (predicted_label, acutal_label) tuples for RMS calculation
@@ -226,11 +213,9 @@ def PredictOverallRatings(train, test):
     for feature, label in getOverallRatingTest:
         correctLabel = label
         classifiedLabel = NBClassifier.classify(feature)
-        #print("Features: {}\nClassified as: {}\nCorrect label: {}\n\n".format(feature, NBClassifier.classify(feature), label))
         if(classifiedLabel == correctLabel):
             correct += 1
         count += 1
-        #print(classifiedLabel, correctLabel)
         predict_actuals.append((float(classifiedLabel), float(correctLabel)))
     print("   Predict overall rating accuracy: {}".format(correct / count))
 
@@ -238,17 +223,14 @@ def PredictOverallRatings(train, test):
 
 
 def CompareAuthorTest(authorDict, posCounts):
-    #print("poscounts: ", posCounts)
     toReturn = ()
     min = sys.maxsize
     for label, counts in authorDict.items():
         if counts != []:
             diffCounter = 0
-            #print("counts: ", counts)
             for pos, count in posCounts:
                 for testPos, testCount in counts:
                     if(testPos == pos):
-                        #print(pos, count, testCount)
                         diffCounter += abs(count - testCount)
 
             if diffCounter < min:
@@ -295,7 +277,6 @@ def PredictAuthor(train, test):
             predict_actuals.append((0,1))
         count += 1
     print("   Predict author accuracy: {}".format(correct / count))
-    #print(predict_actuals)
     return AveRMS(predict_actuals)
 
 
@@ -336,6 +317,7 @@ def main():
     authorAccuracy = 0
     num_trials = 5
     for i in range(num_trials):
+        print("Trial {}".format(i+1))
         test,train = BuildDicts(path)
         binaryRatingsAccuracy += PredictBinaryRatings(train, test)
         overallRatingsAccuracy += PredictOverallRatings(train, test)
@@ -358,12 +340,10 @@ def main():
 
     # Exercise 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
     # for the final rating number.
-    #PredictOverallRatings(train, test)
     print("Average RMS error of 5 trials for predicting overall rating of each review: {}"
           .format(overallRatingsAccuracy))
 
     # Exercise 4 -- Predict the author of each review.
-    #PredictAuthor(train, test)
     print("Average RMS error of 5 trials for predicting the author of each review: {}"
           .format(authorAccuracy))
 
