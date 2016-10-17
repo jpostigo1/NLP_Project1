@@ -209,7 +209,7 @@ def PredictBinaryRatings(train, test):
             num_correct += 1
         num_total += 1
         predict_actuals.append((predict, label))
-    #print("Accuracy for Vader: {}".format(float(num_correct) / num_total))
+    print("   Predict binary rating accuracy: {}".format(num_correct / num_total))
     #print("Average RMS error for Vader: {}".format(AveRMS(predict_actuals)))
     return AveRMS(predict_actuals)
 
@@ -232,11 +232,9 @@ def PredictOverallRatings(train, test):
         count += 1
         #print(classifiedLabel, correctLabel)
         predict_actuals.append((float(classifiedLabel), float(correctLabel)))
-    #print(correct / count)
+    print("   Predict overall rating accuracy: {}".format(correct / count))
 
     return AveRMS(predict_actuals)
-
-
 
 
 def CompareAuthorTest(authorDict, posCounts):
@@ -258,6 +256,7 @@ def CompareAuthorTest(authorDict, posCounts):
                 toReturn = label
 
     return toReturn
+
 
 def PredictAuthor(train, test):
     # Given the train set and test set, return the AveRMS score for predicting the author of reviews
@@ -295,7 +294,7 @@ def PredictAuthor(train, test):
         else:
             predict_actuals.append((0,1))
         count += 1
-    #result = correct / count
+    print("   Predict author accuracy: {}".format(correct / count))
     #print(predict_actuals)
     return AveRMS(predict_actuals)
 
@@ -306,11 +305,12 @@ def AveRMS(prediction_actuals):
     return math.sqrt(sum([pow(p - a, 2) for p, a in prediction_actuals]) / len(prediction_actuals))
 
 
-def AverageFiveTrials(func):
+def AverageFiveTrials(predictFunc, getSetsFunc):
     num_trials = 5
     results = []
-    for i in range(5):
-        results.append(func())
+    for i in range(num_trials):
+        test, train = getSetsFunc()
+        results.append(predictFunc(train, test))
     return sum(results) / num_trials
 
 
@@ -330,13 +330,23 @@ def main():
         print("Usage: restaurants.py DATA_DIR")
         sys.exit(1)
 
-    test,train = BuildDicts(path)
-    #print("Test: {}\n\nTrain: {}".format(test, train))
-
+    # Run tests 5 times with new test/train sets each iteration and compute averages
+    binaryRatingsAccuracy = 0
+    overallRatingsAccuracy = 0
+    authorAccuracy = 0
+    num_trials = 5
+    for i in range(num_trials):
+        test,train = BuildDicts(path)
+        binaryRatingsAccuracy += PredictBinaryRatings(train, test)
+        overallRatingsAccuracy += PredictOverallRatings(train, test)
+        authorAccuracy += PredictAuthor(train, test)
+    binaryRatingsAccuracy /= num_trials
+    overallRatingsAccuracy /= num_trials
+    authorAccuracy /= num_trials
 
     # Exercise 1 -- Predict the binary rating of each paragraph regardless of subject, assume correct order for ratings.
-    #print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
-    #      .format(1 - AverageFiveTrials(lambda: PredictBinaryRatings(train, test))))
+    print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
+          .format(binaryRatingsAccuracy))
 
     # Exercise 2 -- Use NLTK functions and corpora to discover three interesting phenomena about the restaurant corpus.
     # Use machine learning to prove this. Discuss your results.
@@ -350,12 +360,12 @@ def main():
     # for the final rating number.
     #PredictOverallRatings(train, test)
     print("Average RMS error of 5 trials for predicting overall rating of each review: {}"
-          .format(1 - AverageFiveTrials(lambda: PredictOverallRatings(train, test))))
+          .format(overallRatingsAccuracy))
 
     # Exercise 4 -- Predict the author of each review.
     #PredictAuthor(train, test)
-    #print("Average RMS error of 5 trials for predicting the author of each review: {}"
-    #      .format(1 - AverageFiveTrials(lambda: PredictAuthor(train, test))))
+    print("Average RMS error of 5 trials for predicting the author of each review: {}"
+          .format(authorAccuracy))
 
 
 if __name__ == "__main__":
