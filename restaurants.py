@@ -46,15 +46,18 @@ def GetBinaryRating(rating):
 def GetOverallRating(reviewSet):
     scores = []
     for review in reviewSet:
-        food_score = review[FOOD_RATING]
-        service_score = review[SERVICE_RATING]
-        venue_score = review[VENUE_RATING]
-        overall_score = review[OVERALL_RATING]
+        keys = review.keys()
+        if "food" in keys and ("rating" in keys or "overall" in keys) \
+                and "service" in keys and "venue" in keys:
+            food_score = review[FOOD_RATING]
+            service_score = review[SERVICE_RATING]
+            venue_score = review[VENUE_RATING]
+            overall_score = review[OVERALL_RATING]
 
-        features = ({"food_score":food_score, "service_score":service_score,
-                    "venue_score":venue_score}, overall_score)
+            features = ({"food_score":food_score, "service_score":service_score,
+                        "venue_score":venue_score}, overall_score)
 
-        scores.append(features)
+            scores.append(features)
 
     return scores
 
@@ -216,7 +219,22 @@ def PredictOverallRatings(train, test):
     getOverallRatingTrain = GetOverallRating(train)
     getOverallRatingTest = GetOverallRating(test)
 
-    return 0
+    NBClassifier = nltk.NaiveBayesClassifier.train(getOverallRatingTrain)
+    correct = 0
+    count = 0
+    predict_actuals = []
+    for feature, label in getOverallRatingTest:
+        correctLabel = label
+        classifiedLabel = NBClassifier.classify(feature)
+        #print("Features: {}\nClassified as: {}\nCorrect label: {}\n\n".format(feature, NBClassifier.classify(feature), label))
+        if(classifiedLabel == correctLabel):
+            correct += 1
+        count += 1
+        #print(classifiedLabel, correctLabel)
+        predict_actuals.append((float(classifiedLabel), float(correctLabel)))
+    #print(correct / count)
+
+    return AveRMS(predict_actuals)
 
 
 
@@ -317,8 +335,8 @@ def main():
 
 
     # Exercise 1 -- Predict the binary rating of each paragraph regardless of subject, assume correct order for ratings.
-    print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
-          .format(1 - AverageFiveTrials(lambda: PredictBinaryRatings(train, test))))
+    #print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
+    #      .format(1 - AverageFiveTrials(lambda: PredictBinaryRatings(train, test))))
 
     # Exercise 2 -- Use NLTK functions and corpora to discover three interesting phenomena about the restaurant corpus.
     # Use machine learning to prove this. Discuss your results.
@@ -330,13 +348,14 @@ def main():
 
     # Exercise 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
     # for the final rating number.
-    #print("Average RMS error of 5 trials for predicting overall rating of each review: {}"
-    #      .format(1 - AverageFiveTrials(lambda: PredictOverallRatings(train, test))))
+    #PredictOverallRatings(train, test)
+    print("Average RMS error of 5 trials for predicting overall rating of each review: {}"
+          .format(1 - AverageFiveTrials(lambda: PredictOverallRatings(train, test))))
 
     # Exercise 4 -- Predict the author of each review.
     #PredictAuthor(train, test)
-    print("Average RMS error of 5 trials for predicting the author of each review: {}"
-          .format(1 - AverageFiveTrials(lambda: PredictAuthor(train, test))))
+    #print("Average RMS error of 5 trials for predicting the author of each review: {}"
+    #      .format(1 - AverageFiveTrials(lambda: PredictAuthor(train, test))))
 
 
 if __name__ == "__main__":
