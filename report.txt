@@ -15,7 +15,39 @@ their corresponding numerical ratings.
 
 
 Exercise 2
-
+We were interested in discovering which words were used more often in positive
+reviews as well as negative reviews. In order to do so, we split the reviews
+into two sets: good ratings (overall rating of 4 or 5) and bad ratings (overall
+rating of 1, 2, or 3). We then calculated the FreqDist on all of the words, not
+including the stopwords. Then we took the difference of the frequency of words
+occurring in both good and bad sets. For example, if "yummy" showed up 20 times
+in good reviews and 5 times in bad reviews, we would adjust the frequency for
+"yummy" in the good reviews to 15 and 0 for bad reviews. Therefore, we have an
+updated list of word frequencies reflecting the comparative occurrences in good
+ratings and bad ratings. These are the three interesting things we discovered
+as a result:
+   1) Reviews that have a positive overall rating of a restaurant tend to have
+      more sentences than negative reviews. We discovered this by noticing
+      that good reviews have consistently more periods ('.') than bad reviews
+      (typically 100+ more). Probably not surprisingly, good reviews typically
+      contained more occurrences of the word "good". Also, good reviews tend to
+      contain more occurrences of "I", possibly indicating that reviewers
+      write in the first person when they liked the restaurant.
+   2) Surprisingly to us, reviews that have a negative overall rating of a
+      restaurant did not have as many distinguishing words as the positive
+      ratings; the most frequent words usually had 10 or less occurrences,
+      compared to the most frequent words in the positive reviews occurring
+      around 30 times. The most notable recurring word used in negative reviews
+      was "n't", probably used in phrases like "didn't like" or "wasn't good".
+   3) This method of distinguishing between reviews with good ratings and
+      reviews with bad ratings proved to be beneficial in predicting the
+      binary overall rating of reviews based on the text alone. To confirm this,
+      we used the most common compared word frequencies for good and bad ratings
+      as features to train a Naive Bayes classifier. When given the tokenized
+      words of a review, the classifier was able to correctly predict the overall
+      rating of the review with an average accuracy of 64%. We found this
+      interesting because it is nearly identical to the accuracy we achieve using
+      NLTK's VADER sentiment analyzer.
 
 
 Exercise 3

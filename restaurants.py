@@ -145,6 +145,8 @@ def BuildDicts(path):
 
 def CleanHtml(htmlPath, reviewer=None):
     fd = open(htmlPath, encoding='utf-8').read()
+    # encode('utf-8').strip()
+
     soup = BeautifulSoup(fd, 'html.parser')
     reviewDict = {}
 
@@ -256,6 +258,23 @@ def CompareAuthorTest(authorDict, posCounts):
     return toReturn
 
 
+def PredictBinaryFromWordFreqs(distinct_0, distinct_1, test):
+    train_set = GetFeaturesDistinctWordsSentiment(distinct_0, distinct_1)
+    classifier = nltk.NaiveBayesClassifier.train(train_set)
+
+    num_correct = 0
+    num_total = 0
+    for review in test:
+        if (review != {} and OVERALL_RATING in review):
+            non_stopwords = nltk.FreqDist(textModifiers.RemoveStopwords(textModifiers.GetReviewText(review)))
+            classified = classifier.classify(non_stopwords)
+            if classified == GetBinaryRating(review[OVERALL_RATING]):
+                num_correct += 1
+            num_total += 1
+
+    return num_correct / num_total
+
+
 def PredictAuthor(train, test):
     # Given the train set and test set, return the AveRMS score for predicting the author of reviews
     getAuthorFeaturesTrain = GetAuthor(train)
@@ -323,6 +342,9 @@ def main():
 
     # Run tests 5 times with new test/train sets each iteration and compute averages
     binaryRatingsAccuracy = 0
+    binaryWordFreqsAccuracy = 0
+    mostCommonWordFreqs = 10  # Change to use more/less words for exercise 2
+    distinct_0, distinct_1 = None, None
     overallRatingsAccuracy = 0
     authorAccuracy = 0
     num_trials = 5
@@ -339,12 +361,17 @@ def main():
 
         f1_score.append((2*precision[i]*recall[i]) / (precision[i] + recall[i]))
 
+        distinct_0, distinct_1 = textModifiers.GetSentimentWords(train, mostCommonWordFreqs)
+        binaryWordFreqsAccuracy += PredictBinaryFromWordFreqs(distinct_0, distinct_1, test)
+
         averms, ORAccuracy = PredictOverallRatings(train, test)
         overallRatingRMS += averms
         overallRatingsAccuracy += ORAccuracy
         authorAccuracy += PredictAuthor(train, test)
 
+
     binaryRatingsAccuracy /= num_trials
+    binaryWordFreqsAccuracy /= num_trials
     overallRatingsAccuracy /= num_trials
     authorAccuracy /= num_trials
     overallRatingRMS /= num_trials
@@ -366,23 +393,20 @@ def main():
 
     # Exercise 2 -- Use NLTK functions and corpora to discover three interesting phenomena about the restaurant corpus.
     # Use machine learning to prove this. Discuss your results.
-    #
-    #  - Could possibly use sentimentAnalysis.py to find interesting stats on subjectivity/objectivity of reviews
-    #  - Could remove stopwords, count freqdist on rest of words, split into good/bad or subj/obj reviews and remove
-    #    the non-distinct words, use as features in a classifier
-    #  - ...?
+    #  - Remove stopwords, count freqdist on rest of words, split reviews according to binary rating and compare
+    #    the non-distinct words, then use these most common compared word freqs as features in a NB classifier
     print("Exercise 2:")
-    most_common = 15
-    distinct_0, distinct_1 = textModifiers.GetSentimentWords(train, most_common)
     print("   Most common word count differences for good ratings: {}".format(distinct_1))
     print("   Most common word count differences for bad ratings: {}".format(distinct_0))
+    print("   Accuracy predicting binary rating using most common word count differences: {}"
+          .format(binaryWordFreqsAccuracy))
     print()
+
     # Exercise 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
     # for the final rating number.
     print("Exercise 3: ")
     print("   Average predict overall rating accuracy: {}".format(overallRatingsAccuracy))
-    print("   Average RMS error of 5 trials for predicting overall rating of each review: {}"
-          .format(overallRatingRMS))
+    print("   Average RMS error for overall rating: {}".format(overallRatingRMS))
     print()
     # Exercise 4 -- Predict the author of each review.
     #print("Average RMS error of 5 trials for predicting the author of each review: {}"
@@ -408,6 +432,16 @@ def main():
         print(df_confusion)
         print()
     '''
+
+def GetFeaturesDistinctWordsSentiment(distinct_bad, distinct_good):
+    features = []
+    for word, freq in distinct_bad:
+        features.append(({word: freq}, 0))
+    for word,freq in distinct_good:
+        features.append(({word: freq}, 1))
+    return features
+
+
 if __name__ == "__main__":
     main()
 

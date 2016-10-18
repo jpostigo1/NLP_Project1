@@ -63,7 +63,7 @@ def GetReviewText(review):
 
 def GetSentimentWords(set, n=5):
     # Given a set of review dictionaries (such as test or train),
-    # return the `n` most frequent words distinct to each overall rating
+    # return the `n` most frequent words compared to good(4,5)/bad(1,2,3) ratings
     set_0, set_1 = SplitOnOverallRating(set)
 
     words_0 = [word.lower() for review in set_0 for word in RemoveStopwords(GetReviewText(review))]
