@@ -8,9 +8,9 @@ sentiment intensity analyzer. This gives us a percentage for how negative and
 positive the given text is, which we use to predict the binary rating of each
 paragraph. If the sentiment ratings are more negative, we predict 0 for the
 paragraph; if the sentiment ratings are more positive, we predict a rating of
-1. This method has been giving us an average of 65% RMS accuracy for predicting
-the binary ratings of each paragraph. We believe that the accuracy is this low
-because of the many paragraphs in the corpus that are not in the same order as
+1. This method has been giving us an average of around 65% accuracy for predicting
+the binary ratings of each paragraph. We believe that the accuracy is fair
+considering that many paragraphs in the corpus that are not in the same order as
 their corresponding numerical ratings.
 
 
@@ -19,7 +19,19 @@ Exercise 2
 
 
 Exercise 3
-
-
+For predicting the overall rating of each review, we used NLTK's Naive Bayes
+classifier. The features we are using are the ratings of all of the other categories
+in the review: venue, food, and service. This has the classifier pick a score between
+1-5, taking into account all of the other ratings so far. This method has been
+giving accuracies between 60% and 70%. We consider this to be a pretty high
+accuracy given our small amount of features.
 
 Exercise 4
+For predicting the authorship of each review we used NLTK's part-of-speech
+tagging. For every review, we get the 30 most common parts of speech used in
+that review, and label that with its author for the training set. For testing
+we wrote a function that finds the author who has the closest amount of similar
+part-of-speech tags. The closest author is then associated with that review
+for the test set. Our average accuracy for this is about 30%. We believe this
+to be fairly good given that part of speech plays a big role in author
+identification and that identifying authors is a very difficult thing to do.
