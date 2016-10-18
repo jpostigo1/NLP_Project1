@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import textModifiers
 
+
 from sklearn.metrics import confusion_matrix
 import pandas as pd
 
@@ -414,25 +415,6 @@ def main():
     print("Exercise 4: ")
     print("   Average predict authorship accuracy: {}".format(authorAccuracy))
 
-    for label, items in ConfusionMatrix.items():
-        print(label, items)
-
-    y_actual = []
-    y_pred = []
-
-    '''
-    for label, items in ConfusionMatrix.items():
-        y_actual.append(label)
-        y_pred = []
-        for pred, count in items.items():
-            y_pred.append(count)
-        y_a = pd.Series(y_actual, name='Actual')
-        y_p = pd.Series(y_pred, name='Predicted')
-        df_confusion = pd.crosstab(y_a,y_p, rownames=['Actual'], colnames=['Predicted'], margins=True)
-        print(df_confusion)
-        print()
-    '''
-
 def GetFeaturesDistinctWordsSentiment(distinct_bad, distinct_good):
     features = []
     for word, freq in distinct_bad:
@@ -440,7 +422,6 @@ def GetFeaturesDistinctWordsSentiment(distinct_bad, distinct_good):
     for word,freq in distinct_good:
         features.append(({word: freq}, 1))
     return features
-
 
 if __name__ == "__main__":
     main()
