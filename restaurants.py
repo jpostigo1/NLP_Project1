@@ -1,8 +1,10 @@
 import nltk, os, sys, re, random, string, math
 from bs4 import BeautifulSoup
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
-import numpy
 import textModifiers
+
+from sklearn.metrics import confusion_matrix
+import pandas as pd
 
 TRAIN = 'training'
 TEST = 'test'
@@ -19,6 +21,7 @@ OVERALL_TEXT = "para4"
 
 PARAGRAPH = "paragraph"
 
+ConfusionMatrix = {}
 
 def GetFeaturesParagraphRating(reviewSet):
     # Returns a list of (paragraph, rating) tuples based on the following expected order of paragraphs:
@@ -120,8 +123,8 @@ def BuildDicts(path):
         reviewers_in_train = set()
 
         for review in allReviews:
-            rvwr = review["reviewer"]
             if (review != {}):
+                rvwr = review["reviewer"]
                 if(rvwr in reviewers_in_train and
                    rvwr in reviewers_in_test):
                     rnd = random.randint(0,1)
@@ -281,11 +284,20 @@ def PredictAuthor(train, test):
     correct = 0
     for feature, label in getAuthorFeaturesTest:
         predictedAuthor = CompareAuthorTest(authorDict,feature["pos"].most_common(30))
+        BuildConfMatrix(label, predictedAuthor)
         if(predictedAuthor == label):
             correct += 1
         count += 1
     return correct / count
 
+def BuildConfMatrix(actual, predicted):
+    if actual not in ConfusionMatrix:
+        ConfusionMatrix[actual] = {}
+    if predicted not in ConfusionMatrix[actual]:
+        ConfusionMatrix[actual][predicted] = 1
+    else:
+        ConfusionMatrix[actual][predicted] += 1
+    return
 
 def RMS(prediction_actuals):
     # Returns the average root-mean-square of the given values
@@ -359,11 +371,12 @@ def main():
     #  - Could remove stopwords, count freqdist on rest of words, split into good/bad or subj/obj reviews and remove
     #    the non-distinct words, use as features in a classifier
     #  - ...?
+    print("Exercise 2:")
     most_common = 15
     distinct_0, distinct_1 = textModifiers.GetSentimentWords(train, most_common)
-    print("Most common word count differences for good ratings: {}".format(distinct_1))
-    print("Most common word count differences for bad ratings: {}".format(distinct_0))
-
+    print("   Most common word count differences for good ratings: {}".format(distinct_1))
+    print("   Most common word count differences for bad ratings: {}".format(distinct_0))
+    print()
     # Exercise 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
     # for the final rating number.
     print("Exercise 3: ")
@@ -377,7 +390,24 @@ def main():
     print("Exercise 4: ")
     print("   Average predict authorship accuracy: {}".format(authorAccuracy))
 
+    for label, items in ConfusionMatrix.items():
+        print(label, items)
 
+    y_actual = []
+    y_pred = []
 
+    '''
+    for label, items in ConfusionMatrix.items():
+        y_actual.append(label)
+        y_pred = []
+        for pred, count in items.items():
+            y_pred.append(count)
+        y_a = pd.Series(y_actual, name='Actual')
+        y_p = pd.Series(y_pred, name='Predicted')
+        df_confusion = pd.crosstab(y_a,y_p, rownames=['Actual'], colnames=['Predicted'], margins=True)
+        print(df_confusion)
+        print()
+    '''
 if __name__ == "__main__":
     main()
+
