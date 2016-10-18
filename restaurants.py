@@ -121,13 +121,25 @@ def BuildDicts(path):
 
         #put one review from each reviewer in the test set and the rest in train
         reviewers_in_test = set()
+        reviewers_in_train = set()
+
         for review in allReviews:
+            rvwr = review["reviewer"]
             if (review != {}):
-                if (review["reviewer"] in reviewers_in_test):
+                if(rvwr in reviewers_in_train and
+                   rvwr in reviewers_in_test):
+                    rnd = random.randint(0,1)
+                    if(rnd == 1):
+                        reviewers_in_train.add(rvwr)
+                    else:
+                        reviewers_in_test.add(rvwr)
+
+                elif (rvwr in reviewers_in_test):
                     train.append(review)
+                    reviewers_in_train.add(rvwr)
                 else:
                     test.append(review)
-                    reviewers_in_test.add(review["reviewer"])
+                    reviewers_in_test.add(rvwr)
 
     return (test, train)
 
