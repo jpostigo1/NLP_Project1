@@ -67,3 +67,13 @@ part-of-speech tags. The closest author is then associated with that review
 for the test set. Our average accuracy for this is about 30%. We believe this
 to be fairly good given that part of speech plays a big role in author
 identification and that identifying authors is a very difficult thing to do.
+
+Exercise 5
+The confusion matrix was ran on 30 trials. For the confusion matrix,
+there were some people that got classified to themselves, which is good.
+For others, they don't even get classified to themselves and instead got
+classified to other people. There is an issue with some people's reviews
+that had improper HTML tags. If that was the case their review would show up
+"empty" and they would classify to one other person. So there are some people
+who are classifiying to one person 30 times. Most of the people were being
+classified to Vivian Fong, Alanna Buss, Nupur Garg, and Timothy Chu.
