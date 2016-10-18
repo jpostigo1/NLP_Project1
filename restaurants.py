@@ -4,9 +4,6 @@ from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import textModifiers
 
 
-from sklearn.metrics import confusion_matrix
-import pandas as pd
-
 TRAIN = 'training'
 TEST = 'test'
 
@@ -22,6 +19,10 @@ OVERALL_TEXT = "para4"
 
 PARAGRAPH = "paragraph"
 
+FILENAME = "filename"
+
+EmptyPredictions = {}
+
 ConfusionMatrix = {}
 
 def GetFeaturesParagraphRating(reviewSet):
@@ -32,10 +33,10 @@ def GetFeaturesParagraphRating(reviewSet):
     for review in reviewSet:
         if ("para1" in review.keys() and "para2" in review.keys() and
             "para3" in review.keys() and "para4" in review.keys()):
-            paragraphRatings.append(({PARAGRAPH: review[FOOD_TEXT]}, GetBinaryRating(review[FOOD_RATING])))
-            paragraphRatings.append(({PARAGRAPH: review[SERVICE_TEXT]}, GetBinaryRating(review[SERVICE_RATING])))
-            paragraphRatings.append(({PARAGRAPH: review[VENUE_TEXT]}, GetBinaryRating(review[VENUE_RATING])))
-            paragraphRatings.append(({PARAGRAPH: review[OVERALL_TEXT]}, GetBinaryRating(review[OVERALL_RATING])))
+            paragraphRatings.append(({PARAGRAPH: review[FOOD_TEXT]}, GetBinaryRating(review[FOOD_RATING]), review[FILENAME], FOOD_RATING))
+            paragraphRatings.append(({PARAGRAPH: review[SERVICE_TEXT]}, GetBinaryRating(review[SERVICE_RATING]), review[FILENAME], SERVICE_RATING))
+            paragraphRatings.append(({PARAGRAPH: review[VENUE_TEXT]}, GetBinaryRating(review[VENUE_RATING]), review[FILENAME], VENUE_RATING))
+            paragraphRatings.append(({PARAGRAPH: review[OVERALL_TEXT]}, GetBinaryRating(review[OVERALL_RATING]), review[FILENAME], OVERALL_RATING))
     return paragraphRatings
 
 
@@ -45,10 +46,13 @@ def GetVaderRatings(text):
 
 
 def GetBinaryRating(rating):
-    return 0 if float(rating) <= 3 else 1
+    if rating != "":
+        return 0 if float(rating) <= 3 else 1
+    else:
+        return ""
 
 
-def GetOverallRating(reviewSet):
+def GetOverallRating(reviewSet, getFileNames=False):
     scores = []
     for review in reviewSet:
         keys = review.keys()
@@ -59,7 +63,11 @@ def GetOverallRating(reviewSet):
             venue_score = review[VENUE_RATING]
             overall_score = review[OVERALL_RATING]
 
-            features = ({"food_score":food_score, "service_score":service_score,
+            if getFileNames:
+                features = ({"food_score":food_score, "service_score":service_score,
+                        "venue_score":venue_score}, overall_score, review[FILENAME])
+            else:
+                features = ({"food_score":food_score, "service_score":service_score,
                         "venue_score":venue_score}, overall_score)
 
             scores.append(features)
@@ -76,13 +84,16 @@ def GetSpeechTags(allParas):
 
     return fd
 
-def GetAuthor(reviewSet):
+def GetAuthor(reviewSet, getFileNames=False):
     pos_author = []
     for review in reviewSet:
         allParas = textModifiers.GetReviewText(review)
         speechTags = GetSpeechTags(allParas)
         #returns POS used
-        features = ({"pos":speechTags}, review["reviewer"])
+        if getFileNames:
+            features = ({"pos":speechTags}, review["reviewer"], review[FILENAME])
+        else:
+            features = ({"pos":speechTags}, review["reviewer"])
         pos_author.append(features)
 
     return pos_author
@@ -100,12 +111,14 @@ def BuildDicts(path):
     if TestAndTrainExist(path):
         #parse the html files
         for file in os.listdir(path + '/' + TEST):
-            filePath = path + '/' + TEST + '/' + file
-            test.append(CleanHtml(filePath))
+            if not (file.startswith('.')):
+                filePath = path + '/' + TEST + '/' + file
+                test.append(CleanHtml(filePath))
 
         for file in os.listdir(path + '/' + TRAIN):
-            filePath = path + '/' + TRAIN + '/' + file
-            train.append(CleanHtml(filePath))
+            if not (file.startswith('.')):
+                filePath = path + '/' + TRAIN + '/' + file
+                train.append(CleanHtml(filePath))
     else:
         #files are in review folders
         allReviews = []
@@ -124,7 +137,7 @@ def BuildDicts(path):
         reviewers_in_train = set()
 
         for review in allReviews:
-            if (review != {}):
+            if (review != {} and "reviewer" in review):
                 rvwr = review["reviewer"]
                 if(rvwr in reviewers_in_train and
                    rvwr in reviewers_in_test):
@@ -150,6 +163,7 @@ def CleanHtml(htmlPath, reviewer=None):
 
     soup = BeautifulSoup(fd, 'html.parser')
     reviewDict = {}
+    reviewDict[FILENAME] = htmlPath.split('/')[-1]
 
     stop = False
     count = 1
@@ -196,16 +210,20 @@ def CleanHtml(htmlPath, reviewer=None):
     return reviewDict
 
 
-def PredictBinaryRatings(train, test):
+def PredictBinaryRatings(train, test, path, predictMissing=False):
     paraRatingFeaturesTest = GetFeaturesParagraphRating(test)
 
     tp = tn = fp = fn = 0
 
     num_correct = 0
     num_total = 0
-    for feature, label in paraRatingFeaturesTest:
+    for feature, label, filename, topic in paraRatingFeaturesTest:
         vader_ratings = GetVaderRatings(feature["paragraph"])
         predict = 0 if vader_ratings["neg"] > vader_ratings["pos"] else 1
+
+        if predictMissing and TestAndTrainExist(path) and label == "" and topic != OVERALL_RATING:
+            print("   {}: {} rating = {}".format(filename, topic, predict))
+
         if predict == label:
             if(predict == 1):
                 tp += 1
@@ -221,22 +239,25 @@ def PredictBinaryRatings(train, test):
     return (num_correct/num_total, tp, tn, fp, fn)
 
 
-def PredictOverallRatings(train, test):
+def PredictOverallRatings(train, test, path, predictMissing=False):
     # Given the train set and test set, return the AveRMS score for predicting overall ratings of reviews
     getOverallRatingTrain = GetOverallRating(train)
-    getOverallRatingTest = GetOverallRating(test)
+    getOverallRatingTest = GetOverallRating(test, getFileNames=True)
 
     NBClassifier = nltk.NaiveBayesClassifier.train(getOverallRatingTrain)
     correct = 0
     count = 0
     predict_actuals = []
-    for feature, label in getOverallRatingTest:
+    for feature, label, filename in getOverallRatingTest:
         correctLabel = label
         classifiedLabel = NBClassifier.classify(feature)
-        if(classifiedLabel == correctLabel):
+        if predictMissing and TestAndTrainExist(path) and label == "":
+            print("   {}: overall rating = {}".format(filename, classifiedLabel))
+        if (classifiedLabel == correctLabel):
             correct += 1
         count += 1
-        predict_actuals.append((float(classifiedLabel), float(correctLabel)))
+        if correctLabel != "":
+            predict_actuals.append((float(classifiedLabel), float(correctLabel)))
     #print("   Predict overall rating accuracy: {}".format(correct / count))
     return (RMS(predict_actuals), correct / count)
 
@@ -259,6 +280,15 @@ def CompareAuthorTest(authorDict, posCounts):
     return toReturn
 
 
+def GetFeaturesDistinctWordsSentiment(distinct_bad, distinct_good):
+    features = []
+    for word, freq in distinct_bad:
+        features.append(({word: freq}, 0))
+    for word,freq in distinct_good:
+        features.append(({word: freq}, 1))
+    return features
+
+
 def PredictBinaryFromWordFreqs(distinct_0, distinct_1, test):
     train_set = GetFeaturesDistinctWordsSentiment(distinct_0, distinct_1)
     classifier = nltk.NaiveBayesClassifier.train(train_set)
@@ -276,16 +306,16 @@ def PredictBinaryFromWordFreqs(distinct_0, distinct_1, test):
     return num_correct / num_total
 
 
-def PredictAuthor(train, test):
+def PredictAuthor(train, test, path, predictMissing=False):
     # Given the train set and test set, return the AveRMS score for predicting the author of reviews
     getAuthorFeaturesTrain = GetAuthor(train)
-    getAuthorFeaturesTest = GetAuthor(test)
+    getAuthorFeaturesTest = GetAuthor(test, getFileNames=True)
+    mostCommonNum = 30  #top 30 most common pos tags
 
     authorDict = {}
     seen = []
     for feature, label in getAuthorFeaturesTrain:
-        #top 30 most common pos tags
-        mostCommon = feature["pos"].most_common(30)
+        mostCommon = feature["pos"].most_common(mostCommonNum)
 
         if(label in seen):
             after = []
@@ -302,8 +332,10 @@ def PredictAuthor(train, test):
 
     count = 0
     correct = 0
-    for feature, label in getAuthorFeaturesTest:
-        predictedAuthor = CompareAuthorTest(authorDict,feature["pos"].most_common(30))
+    for feature, label, filename in getAuthorFeaturesTest:
+        predictedAuthor = CompareAuthorTest(authorDict,feature["pos"].most_common(mostCommonNum))
+        if predictMissing and TestAndTrainExist(path) and label == "":
+            print("   {}: reviewer = {}".format(filename, predictedAuthor))
         BuildConfMatrix(label, predictedAuthor)
         if(predictedAuthor == label):
             correct += 1
@@ -318,6 +350,7 @@ def BuildConfMatrix(actual, predicted):
     else:
         ConfusionMatrix[actual][predicted] += 1
     return
+
 
 def RMS(prediction_actuals):
     # Returns the average root-mean-square of the given values
@@ -341,6 +374,9 @@ def main():
         print("Usage: restaurants.py DATA_DIR")
         sys.exit(1)
 
+    if TestAndTrainExist(path):
+        print("Predictions for missing values:")
+
     # Run tests 5 times with new test/train sets each iteration and compute averages
     binaryRatingsAccuracy = 0
     binaryWordFreqsAccuracy = 0
@@ -355,7 +391,7 @@ def main():
     f1_score = []
     for i in range(num_trials):
         test,train = BuildDicts(path)
-        brAccuracy, tp, tn, fp, fn = PredictBinaryRatings(train, test)
+        brAccuracy, tp, tn, fp, fn = PredictBinaryRatings(train, test, path, predictMissing=i==0)
         binaryRatingsAccuracy += brAccuracy
         precision.append(tp/(tp + fp))
         recall.append(tp/(tp+fn))
@@ -365,10 +401,10 @@ def main():
         distinct_0, distinct_1 = textModifiers.GetSentimentWords(train, mostCommonWordFreqs)
         binaryWordFreqsAccuracy += PredictBinaryFromWordFreqs(distinct_0, distinct_1, test)
 
-        averms, ORAccuracy = PredictOverallRatings(train, test)
+        averms, ORAccuracy = PredictOverallRatings(train, test, path, predictMissing=i==0)
         overallRatingRMS += averms
         overallRatingsAccuracy += ORAccuracy
-        authorAccuracy += PredictAuthor(train, test)
+        authorAccuracy += PredictAuthor(train, test, path, predictMissing=i==0)
 
 
     binaryRatingsAccuracy /= num_trials
@@ -381,12 +417,13 @@ def main():
     recallAverage = sum(recall)/num_trials
     f1_scoreAverage = sum(f1_score)/num_trials
 
+    if TestAndTrainExist(path):
+        print()
     # Exercise 1 -- Predict the binary rating of each paragraph regardless of subject, assume correct order for ratings.
     #print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
     #      .format(binaryRatingsAccuracy))
     print("Exercise 1:")
     print("   Average predict binary rating accuracy: {}".format(binaryRatingsAccuracy))
-
     print("   Average predict binary rating precision: {}".format(precisionAverage))
     print("   Average predict binary rating recall: {}".format(recallAverage))
     print("   Average predict binary rating F1 Score: {}".format(f1_scoreAverage))
@@ -415,13 +452,6 @@ def main():
     print("Exercise 4: ")
     print("   Average predict authorship accuracy: {}".format(authorAccuracy))
 
-def GetFeaturesDistinctWordsSentiment(distinct_bad, distinct_good):
-    features = []
-    for word, freq in distinct_bad:
-        features.append(({word: freq}, 0))
-    for word,freq in distinct_good:
-        features.append(({word: freq}, 1))
-    return features
 
 if __name__ == "__main__":
     main()
