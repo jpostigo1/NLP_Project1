@@ -183,22 +183,28 @@ def CleanHtml(htmlPath, reviewer=None):
 
 
 def PredictBinaryRatings(train, test):
-    paraRatingFeaturesTrain = GetFeaturesParagraphRating(train)
     paraRatingFeaturesTest = GetFeaturesParagraphRating(test)
+
+    tp = tn = fp = fn = 0
 
     num_correct = 0
     num_total = 0
-    predict_actuals = [] # list of (predicted_label, acutal_label) tuples for RMS calculation
     for feature, label in paraRatingFeaturesTest:
         vader_ratings = GetVaderRatings(feature["paragraph"])
         predict = 0 if vader_ratings["neg"] > vader_ratings["pos"] else 1
         if predict == label:
+            if(predict == 1):
+                tp += 1
+            else:
+                tn += 1
             num_correct += 1
+        else:
+            if(predict == 0):
+                fn += 1
+            else:
+                fp += 1
         num_total += 1
-        predict_actuals.append((predict, label))
-    print("   Predict binary rating accuracy: {}".format(num_correct / num_total))
-    #print("Average RMS error for Vader: {}".format(AveRMS(predict_actuals)))
-    return AveRMS(predict_actuals)
+    return (num_correct/num_total, tp, tn, fp, fn)
 
 
 def PredictOverallRatings(train, test):
@@ -217,9 +223,8 @@ def PredictOverallRatings(train, test):
             correct += 1
         count += 1
         predict_actuals.append((float(classifiedLabel), float(correctLabel)))
-    print("   Predict overall rating accuracy: {}".format(correct / count))
-
-    return AveRMS(predict_actuals)
+    #print("   Predict overall rating accuracy: {}".format(correct / count))
+    return (RMS(predict_actuals), correct / count)
 
 
 def CompareAuthorTest(authorDict, posCounts):
@@ -248,8 +253,9 @@ def PredictAuthor(train, test):
     authorDict = {}
     seen = []
     for feature, label in getAuthorFeaturesTrain:
-        #top 20 most common pos tags
-        mostCommon = feature["pos"].most_common(20)
+        #top 30 most common pos tags
+        mostCommon = feature["pos"].most_common(30)
+
         if(label in seen):
             after = []
             for items, count in authorDict[label]:
@@ -265,34 +271,18 @@ def PredictAuthor(train, test):
 
     count = 0
     correct = 0
-    predict_actuals = []
     for feature, label in getAuthorFeaturesTest:
-
-        predictedAuthor = CompareAuthorTest(
-            authorDict,feature["pos"].most_common(20))
+        predictedAuthor = CompareAuthorTest(authorDict,feature["pos"].most_common(30))
         if(predictedAuthor == label):
-            predict_actuals.append((1,1))
             correct += 1
-        else:
-            predict_actuals.append((0,1))
         count += 1
-    print("   Predict author accuracy: {}".format(correct / count))
-    return AveRMS(predict_actuals)
+    return correct / count
 
 
-def AveRMS(prediction_actuals):
+def RMS(prediction_actuals):
     # Returns the average root-mean-square of the given values
     # predition_actuals is a list of (prediction, actual) tuples
     return math.sqrt(sum([pow(p - a, 2) for p, a in prediction_actuals]) / len(prediction_actuals))
-
-
-def AverageFiveTrials(predictFunc, getSetsFunc):
-    num_trials = 5
-    results = []
-    for i in range(num_trials):
-        test, train = getSetsFunc()
-        results.append(predictFunc(train, test))
-    return sum(results) / num_trials
 
 
 def main():
@@ -316,19 +306,43 @@ def main():
     overallRatingsAccuracy = 0
     authorAccuracy = 0
     num_trials = 5
+    overallRatingRMS = 0
+    precision = []
+    recall = []
+    f1_score = []
     for i in range(num_trials):
-        print("Trial {}".format(i+1))
         test,train = BuildDicts(path)
-        binaryRatingsAccuracy += PredictBinaryRatings(train, test)
-        overallRatingsAccuracy += PredictOverallRatings(train, test)
+        brAccuracy, tp, tn, fp, fn = PredictBinaryRatings(train, test)
+        binaryRatingsAccuracy += brAccuracy
+        precision.append(tp/(tp + fp))
+        recall.append(tp/(tp+fn))
+
+        f1_score.append((2*precision[i]*recall[i]) / (precision[i] + recall[i]))
+
+        averms, ORAccuracy = PredictOverallRatings(train, test)
+        overallRatingRMS += averms
+        overallRatingsAccuracy += ORAccuracy
         authorAccuracy += PredictAuthor(train, test)
+
     binaryRatingsAccuracy /= num_trials
     overallRatingsAccuracy /= num_trials
     authorAccuracy /= num_trials
+    overallRatingRMS /= num_trials
+
+    precisionAverage = sum(precision)/num_trials
+    recallAverage = sum(recall)/num_trials
+    f1_scoreAverage = sum(f1_score)/num_trials
 
     # Exercise 1 -- Predict the binary rating of each paragraph regardless of subject, assume correct order for ratings.
-    print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
-          .format(binaryRatingsAccuracy))
+    #print("Average RMS error of 5 trials for predicting binary ratings of individual paragraphs: {}"
+    #      .format(binaryRatingsAccuracy))
+    print("Exercise 1:")
+    print("   Average predict binary rating accuracy: {}".format(binaryRatingsAccuracy))
+
+    print("   Average predict binary rating precision: {}".format(precisionAverage))
+    print("   Average predict binary rating recall: {}".format(recallAverage))
+    print("   Average predict binary rating F1 Score: {}".format(f1_scoreAverage))
+    print()
 
     # Exercise 2 -- Use NLTK functions and corpora to discover three interesting phenomena about the restaurant corpus.
     # Use machine learning to prove this. Discuss your results.
@@ -340,12 +354,17 @@ def main():
 
     # Exercise 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
     # for the final rating number.
-    print("Average RMS error of 5 trials for predicting overall rating of each review: {}"
-          .format(overallRatingsAccuracy))
-
+    print("Exercise 3: ")
+    print("   Average predict overall rating accuracy: {}".format(overallRatingsAccuracy))
+    print("   Average RMS error of 5 trials for predicting overall rating of each review: {}"
+          .format(overallRatingRMS))
+    print()
     # Exercise 4 -- Predict the author of each review.
-    print("Average RMS error of 5 trials for predicting the author of each review: {}"
-          .format(authorAccuracy))
+    #print("Average RMS error of 5 trials for predicting the author of each review: {}"
+    #      .format(authorAccuracy))
+    print("Exercise 4: ")
+    print("   Average predict authorship accuracy: {}".format(authorAccuracy))
+
 
 
 if __name__ == "__main__":
