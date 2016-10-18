@@ -1,5 +1,5 @@
 from nltk.corpus import stopwords
-from nltk import sent_tokenize, word_tokenize, FreqDist
+from nltk import sent_tokenize, word_tokenize, FreqDist, pos_tag
 from nltk.stem.snowball import SnowballStemmer
 
 def RemoveStopwords(text):
@@ -8,28 +8,73 @@ def RemoveStopwords(text):
     stop = set(stopwords.words("english"))
     return [word for word in word_tokenize(text) if word not in stop]
 
-def GetMostCommonStems(words):
-    # Stem a list of words and return the sorted list of word frequencies, not including stop words
-    # where words is a list of strings
-    stemmer = SnowballStemmer("english")
-    freqs = FreqDist([stemmer.stem(word.lower()) for word in words])
-    return dict(freqs)
 
-def GetDistinctWords(words1, words2):
-    # Returns a tuple of the distinct words from each dictionary
-    # words1 and words2 are dictionaries of {"word": freq} pairs
-    distinct_words1 = [(word, freq) for word, freq in words1.items() if word not in words2.keys()]
-    distinct_words2 = [(word, freq) for word, freq in words2.items() if word not in words1.keys()]
-    return (distinct_words1, distinct_words2)
+def GetComparativeFreqs(words1, words2):
+    # words1 and words2 are lists of dictionaries of {word: freq} entries
+    # return two lists of dictionaries with the adjusted frequencies
+    # for example, if words1 is [{"dog": 5}] and words2 is [{"dog": 2}]
+    # then return words1 as {("dog": 3}] and words2 as []
+    new_words1 = {}
+    for word, freq in words1.items():
+        if word in words2.keys():
+            new_freq = freq - words2[word]
+            if new_freq > 0:
+                new_words1[word] = new_freq
+        else:
+            new_words1[word] = freq
+
+    new_words2 = {}
+    for word, freq in words2.items():
+        if word in words1.keys():
+            new_freq = freq - words1[word]
+            if new_freq > 0:
+                new_words2[word] = new_freq
+        else:
+            new_words2[word] = freq
+
+    return new_words1, new_words2
 
 
-def func(set, n=5):
+def GetMostCommonWordFreqs(words, n=10):
+    return sorted(words.items(), key=lambda t: -t[1])[:n]
+
+
+def SplitOnOverallRating(set):
+    # Return two sets of dictionaries split from `set` based on overall ratings
+    set_0 = []
+    set_1 = []
+    for review in set:
+        if "rating" in review and float(review["rating"]) <= 3:
+            set_0.append(review)
+        else:
+            set_1.append(review)
+    return set_0, set_1
+
+
+def GetReviewText(review):
+    # Returns just the paragraphs from a given review as a single string.
+    allParas = ""
+    for key in review.keys():
+        # get all paragraphs regardless of how many
+        if "para" in key:
+            allParas += "\n" + review[key]
+    return allParas
+
+
+def GetSentimentWords(set, n=5):
     # Given a set of review dictionaries (such as test or train),
     # return the `n` most frequent words distinct to each overall rating
-    pass
+    set_0, set_1 = SplitOnOverallRating(set)
 
+    words_0 = [word.lower() for review in set_0 for word in RemoveStopwords(GetReviewText(review))]
+    freqDict0 = dict(FreqDist([word.lower() for word in words_0]))
 
-s1 = word_tokenize("One two three four one two three four one two three four")
-s2 = word_tokenize("One three five six one four six five five five")
+    words_1 = [word.lower() for review in set_1 for word in RemoveStopwords(GetReviewText(review))]
+    freqDict1 = dict(FreqDist([word.lower() for word in words_1]))
 
-print(GetDistinctWords(GetMostCommonStems(s1), GetMostCommonStems(s2)))
+    comparedFreqs0, comparedFreqs1 = GetComparativeFreqs(freqDict0, freqDict1)
+
+    most_common0 = GetMostCommonWordFreqs(comparedFreqs0, n)
+    most_common1 = GetMostCommonWordFreqs(comparedFreqs1, n)
+
+    return most_common0, most_common1

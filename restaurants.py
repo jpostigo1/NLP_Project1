@@ -2,6 +2,7 @@ import nltk, os, sys, re, random, string, math
 from bs4 import BeautifulSoup
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
 import numpy
+import textModifiers
 
 TRAIN = 'training'
 TEST = 'test'
@@ -74,12 +75,7 @@ def GetSpeechTags(allParas):
 def GetAuthor(reviewSet):
     pos_author = []
     for review in reviewSet:
-        allParas = ""
-        for key in review.keys():
-            #get all paragraphs regardless of how many
-            if "para" in key:
-                allParas += " " + review[key]
-
+        allParas = textModifiers.GetReviewText(review)
         speechTags = GetSpeechTags(allParas)
         #returns POS used
         features = ({"pos":speechTags}, review["reviewer"])
@@ -363,6 +359,10 @@ def main():
     #  - Could remove stopwords, count freqdist on rest of words, split into good/bad or subj/obj reviews and remove
     #    the non-distinct words, use as features in a classifier
     #  - ...?
+    most_common = 15
+    distinct_0, distinct_1 = textModifiers.GetSentimentWords(train, most_common)
+    print("Most common word count differences for good ratings: {}".format(distinct_1))
+    print("Most common word count differences for bad ratings: {}".format(distinct_0))
 
     # Exercise 3 -- Predict the overall rating of each review (1-5) considering all information from the review, except
     # for the final rating number.
